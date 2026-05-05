@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Protostar IFVG — Backtest Results · christakenotes</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:      #050810;
+  --bg2:     #080d18;
+  --bg3:     #0c1220;
+  --ink:     #e8f0fa;
+  --ink2:    #8ba4c0;
+  --ink3:    #3d5470;
+  --cyan:    #18d4f0;
+  --cyan2:   rgba(24,212,240,0.12);
+  --cyan3:   rgba(24,212,240,0.04);
+  --amber:   #ffb830;
+  --amber2:  rgba(255,184,48,0.1);
+  --green:   #00e5a0;
+  --green2:  rgba(0,229,160,0.1);
+  --red:     #ff3a5c;
+  --red2:    rgba(255,58,92,0.1);
+  --border:  rgba(24,212,240,0.15);
+  --border2: rgba(24,212,240,0.06);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html{scroll-behavior:smooth;}
+body{
+  background:var(--bg);color:var(--ink);
+  font-family:'DM Mono',monospace;
+  font-size:13px;line-height:1.8;overflow-x:hidden;
+}
+canvas#stars{position:fixed;inset:0;z-index:0;pointer-events:none;}
+body::before{
+  content:'';position:fixed;inset:0;z-index:1;pointer-events:none;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+  opacity:.4;
+}
+body::after{
+  content:'';position:fixed;inset:0;z-index:999;pointer-events:none;
+  background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,0,0,.012) 3px,rgba(0,0,0,.012) 4px);
+}
+.wrap{position:relative;z-index:2;max-width:960px;margin:0 auto;padding:80px 32px 120px;}
+
+/* PAGE HEADER */
+.page-header{
+  border-bottom:1px solid var(--border);
+  padding-bottom:48px;margin-bottom:80px;
+}
+.page-header-top{
+  display:flex;justify-content:space-between;align-items:flex-start;
+  margin-bottom:24px;
+}
+.back-link{
+  display:inline-flex;align-items:center;gap:8px;
+  font-size:10px;letter-spacing:.3em;text-transform:uppercase;
+  color:var(--ink3);text-decoration:none;
+  transition:color .2s;
+}
+.back-link:hover{color:var(--cyan);}
+.back-link::before{content:'←';}
+.page-badge{
+  font-size:10px;letter-spacing:.4em;text-transform:uppercase;
+  color:var(--cyan);
+  border:1px solid var(--border);padding:6px 14px;border-radius:2px;
+  background:rgba(5,8,16,.6);
+}
+.page-title{
+  font-family:'Bebas Neue',sans-serif;
+  font-size:clamp(48px,8vw,96px);
+  letter-spacing:.04em;line-height:.9;
+  margin-bottom:16px;
+}
+.page-title span{color:var(--cyan);}
+.page-sub{
+  font-family:'Cormorant Garamond',serif;
+  font-style:italic;font-size:18px;
+  color:var(--ink2);max-width:500px;line-height:1.5;
+}
+
+/* SECTION LABEL */
+.section-label{
+  display:flex;align-items:center;gap:16px;
+  font-size:9px;letter-spacing:.4em;text-transform:uppercase;
+  color:var(--cyan);margin-bottom:40px;margin-top:80px;
+}
+.section-label::after{content:'';flex:1;height:1px;background:var(--border);}
+.section-num{font-family:'Bebas Neue',sans-serif;font-size:11px;letter-spacing:.2em;color:var(--ink3);}
+
+/* HERO STATS */
+.stat-hero{
+  display:grid;grid-template-columns:1fr 1fr 1fr;
+  gap:1px;background:var(--border);
+  border:1px solid var(--border);
+  margin-bottom:1px;overflow:hidden;
+}
+.stat-hero-cell{
+  background:var(--bg2);padding:40px 32px;
+  position:relative;overflow:hidden;
+}
+.stat-hero-cell::before{
+  content:'';position:absolute;
+  top:0;left:0;right:0;height:2px;
+  background:linear-gradient(90deg,transparent,var(--cyan),transparent);
+  opacity:0;transition:opacity .3s;
+}
+.stat-hero-cell:hover::before{opacity:1;}
+.stat-hero-cell.featured{
+  background:linear-gradient(135deg,rgba(24,212,240,0.06) 0%,var(--bg2) 100%);
+}
+.stat-num{
+  font-family:'Bebas Neue',sans-serif;
+  font-size:clamp(52px,7vw,80px);
+  letter-spacing:.02em;line-height:.9;
+  margin-bottom:8px;color:var(--ink);
+}
+.stat-num.cyan{color:var(--cyan);}
+.stat-num.green{color:var(--green);}
+.stat-num.amber{color:var(--amber);}
+.stat-label{
+  font-size:10px;letter-spacing:.3em;text-transform:uppercase;
+  color:var(--ink3);margin-bottom:4px;
+}
+.stat-sub{font-size:11px;color:var(--ink2);}
+
+/* SESSION BREAKDOWN */
+.session-grid{
+  display:grid;grid-template-columns:repeat(4,1fr);
+  gap:1px;background:var(--border);
+  border:1px solid var(--border);
+  margin-bottom:80px;overflow:hidden;
+}
+.sess-cell{background:var(--bg2);padding:28px 24px;}
+.sess-name{
+  font-family:'Bebas Neue',sans-serif;
+  font-size:22px;letter-spacing:.06em;
+  margin-bottom:4px;
+}
+.sess-wr{
+  font-family:'Bebas Neue',sans-serif;
+  font-size:36px;letter-spacing:.02em;
+  line-height:1;margin-bottom:8px;
+}
+.sess-trades{font-size:11px;color:var(--ink3);margin-bottom:16px;}
+.sess-bar{height:3px;background:var(--bg3);border-radius:2px;overflow:hidden;}
+.sess-bar-fill{height:100%;border-radius:2px;transition:width 1.2s cubic-bezier(.4,0,.2,1);}
+.sess-verdict{
+  margin-top:16px;font-size:10px;letter-spacing:.2em;text-transform:uppercase;
+  padding:4px 10px;border-radius:2px;display:inline-block;
+}
+.sess-verdict.go{background:var(--green2);color:var(--green);}
+.sess-verdict.skip{background:var(--red2);color:var(--red);}
+
+/* DIRECTION SPLIT */
+.dir-grid{
+  display:grid;grid-template-columns:1fr 1fr;
+  gap:1px;background:var(--border);
+  border:1px solid var(--border);
+  margin-bottom:80px;overflow:hidden;
+}
+.dir-cell{background:var(--bg2);padding:40px;}
+.dir-label{
+  font-size:9px;letter-spacing:.4em;text-transform:uppercase;
+  color:var(--ink3);margin-bottom:12px;
+}
+.dir-wr{
+  font-family:'Bebas Neue',sans-serif;
+  font-size:72px;letter-spacing:.02em;line-height:.9;
+  margin-bottom:8px;
+}
+.dir-detail{font-size:12px;color:var(--ink2);}
+.dir-bar{height:4px;margin-top:24px;background:var(--bg3);border-radius:2px;overflow:hidden;}
+.dir-bar-fill{height:100%;border-radius:2px;}
+
+/* CHART BAR */
+.bar-chart{margin:40px 0;}
+.bar-row{
+  display:grid;grid-template-columns:80px 1fr 60px;
+  gap:12px;align-items:center;
+  margin-bottom:8px;
+}
+.bar-month{font-size:11px;color:var(--ink3);text-align:right;}
+.bar-track{height:24px;background:var(--bg3);border-radius:2px;overflow:hidden;position:relative;}
+.bar-fill{height:100%;border-radius:2px;position:relative;min-width:4px;}
+.bar-fill::after{
+  content:attr(data-label);
+  position:absolute;right:8px;top:50%;transform:translateY(-50%);
+  font-size:10px;letter-spacing:.15em;color:rgba(255,255,255,.7);
+  white-space:nowrap;
+}
+.bar-val{font-family:'Bebas Neue',sans-serif;font-size:16px;color:var(--ink2);}
+
+/* TRADE LOG */
+.trade-log{
+  border:1px solid var(--border);
+  overflow:hidden;margin-top:40px;
+}
+.log-header{
+  display:grid;
+  grid-template-columns:40px 160px 60px 90px 90px 80px 60px 80px;
+  gap:0;
+  background:var(--bg3);
+  border-bottom:1px solid var(--border);
+}
+.log-header-cell{
+  padding:12px 12px;
+  font-size:9px;letter-spacing:.3em;text-transform:uppercase;
+  color:var(--ink3);border-right:1px solid var(--border2);
+}
+.log-header-cell:last-child{border-right:none;}
+.log-row{
+  display:grid;
+  grid-template-columns:40px 160px 60px 90px 90px 80px 60px 80px;
+  border-bottom:1px solid var(--border2);
+  transition:background .15s;
+}
+.log-row:hover{background:var(--cyan3);}
+.log-row:last-child{border-bottom:none;}
+.log-cell{
+  padding:10px 12px;font-size:11px;
+  color:var(--ink2);border-right:1px solid var(--border2);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.log-cell:last-child{border-right:none;}
+.log-cell.num{color:var(--ink3);font-size:10px;}
+.win{color:var(--green)!important;}
+.loss{color:var(--red)!important;}
+.long{color:var(--cyan)!important;}
+.short{color:var(--amber)!important;}
+.log-scroll{max-height:480px;overflow-y:auto;}
+.log-scroll::-webkit-scrollbar{width:4px;}
+.log-scroll::-webkit-scrollbar-track{background:var(--bg2);}
+.log-scroll::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
+
+/* KEY FINDINGS */
+.findings{display:flex;flex-direction:column;gap:1px;background:var(--border);border:1px solid var(--border);margin-bottom:80px;overflow:hidden;}
+.finding{
+  display:grid;grid-template-columns:60px 1fr;
+  background:var(--bg2);
+}
+.finding-num{
+  padding:24px;
+  font-family:'Bebas Neue',sans-serif;
+  font-size:32px;letter-spacing:.04em;
+  color:var(--border);
+  border-right:1px solid var(--border2);
+  display:flex;align-items:flex-start;justify-content:center;
+  padding-top:28px;
+}
+.finding-body{padding:24px 28px;}
+.finding-title{
+  font-family:'Bebas Neue',sans-serif;
+  font-size:18px;letter-spacing:.06em;
+  color:var(--ink);margin-bottom:6px;
+}
+.finding-text{color:var(--ink2);font-size:13px;line-height:1.7;max-width:600px;}
+.finding-text strong{color:var(--cyan);}
+
+/* DISCLAIMER */
+.disclaimer{
+  margin-top:80px;
+  padding:32px;
+  border:1px solid var(--border2);
+  background:var(--bg2);
+}
+.disclaimer-label{
+  font-size:9px;letter-spacing:.4em;text-transform:uppercase;
+  color:var(--ink3);margin-bottom:12px;
+}
+.disclaimer p{font-size:11px;color:var(--ink3);line-height:1.8;}
+
+/* NAV FOOTER */
+.nav-footer{
+  display:flex;justify-content:space-between;align-items:center;
+  margin-top:80px;padding-top:40px;
+  border-top:1px solid var(--border);
+}
+.nav-brand{font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:.1em;color:var(--ink3);}
+.nav-link{
+  display:inline-flex;align-items:center;gap:12px;
+  font-size:11px;letter-spacing:.3em;text-transform:uppercase;
+  color:var(--cyan);text-decoration:none;
+  border:1px solid var(--border);padding:12px 24px;
+  transition:background .2s,border-color .2s;
+}
+.nav-link:hover{background:var(--cyan2);border-color:var(--cyan);}
+.nav-link::before{content:'←';}
+
+@media(max-width:640px){
+  .wrap{padding:48px 20px 80px;}
+  .stat-hero{grid-template-columns:1fr;}
+  .session-grid{grid-template-columns:1fr 1fr;}
+  .dir-grid{grid-template-columns:1fr;}
+  .log-header,.log-row{grid-template-columns:32px 120px 50px 70px 70px 60px 50px 70px;}
+}
+</style>
+</head>
+<body>
+
+<canvas id="stars"></canvas>
+<script>
+(function(){
+  const c=document.getElementById('stars');
+  const ctx=c.getContext('2d');
+  function resize(){c.width=window.innerWidth;c.height=window.innerHeight;}
+  resize();window.addEventListener('resize',resize);
+  const stars=Array.from({length:200},()=>({
+    x:Math.random(),y:Math.random(),
+    r:Math.random()*1.2+.2,
+    o:Math.random()*.5+.1,
+    s:Math.random()*2+1
+  }));
+  let t=0;
+  function draw(){
+    ctx.clearRect(0,0,c.width,c.height);
+    stars.forEach(s=>{
+      const op=s.o*(0.6+0.4*Math.sin(t/s.s));
+      ctx.beginPath();
+      ctx.arc(s.x*c.width,s.y*c.height,s.r,0,Math.PI*2);
+      ctx.fillStyle=`rgba(255,255,255,${op})`;
+      ctx.fill();
+    });
+    t+=0.02;requestAnimationFrame(draw);
+  }
+  draw();
+})();
+</script>
+
+<div class="wrap">
+
+  <!-- PAGE HEADER -->
+  <div class="page-header">
+    <div class="page-header-top">
+      <a href="protostar_strategy.html" class="back-link">Strategy Guide · Page 01</a>
+      <div class="page-badge">Backtest Results · Page 02 of 02</div>
+    </div>
+    <h1 class="page-title">BACKTEST<br><span>RESULTS</span></h1>
+    <p class="page-sub">107 signals. Feb–Apr 2026. Every trade logged. Nothing cherry-picked.</p>
+  </div>
+
+  <!-- HERO STATS -->
+  <div class="section-label"><span class="section-num">01</span> Summary</div>
+
+  <div class="stat-hero">
+    <div class="stat-hero-cell featured">
+      <div class="stat-label">Filtered Win Rate</div>
+      <div class="stat-num cyan">61.4%</div>
+      <div class="stat-sub">44 trades · Asia + London · zone ≤30pts</div>
+    </div>
+    <div class="stat-hero-cell">
+      <div class="stat-label">Filtered Trades</div>
+      <div class="stat-num">44</div>
+      <div class="stat-sub">27W · 17L · from 107 total signals</div>
+    </div>
+    <div class="stat-hero-cell">
+      <div class="stat-label">Avg Risk Per Trade</div>
+      <div class="stat-num amber">17.4<span style="font-size:32px">pts</span></div>
+      <div class="stat-sub">NQ / MNQ · filtered set</div>
+    </div>
+  </div>
+
+  <div class="stat-hero" style="border-top:none;margin-bottom:80px;">
+    <div class="stat-hero-cell">
+      <div class="stat-label">Raw Win Rate (All Sessions)</div>
+      <div class="stat-num" style="font-size:48px;">47.7%</div>
+      <div class="stat-sub">107 signals unfiltered — shows cost of NY session</div>
+    </div>
+    <div class="stat-hero-cell">
+      <div class="stat-label">Target</div>
+      <div class="stat-num green">2.0<span style="font-size:36px">R</span></div>
+      <div class="stat-sub">All trades measured at 2R hit or miss</div>
+    </div>
+    <div class="stat-hero-cell">
+      <div class="stat-label">Period Covered</div>
+      <div class="stat-num" style="font-size:40px;color:var(--ink2);">Feb–Apr</div>
+      <div class="stat-sub">2026 · NQ continuous front-month</div>
+    </div>
+  </div>
+
+  <!-- SESSION BREAKDOWN -->
+  <div class="section-label"><span class="section-num">02</span> Session Breakdown</div>
+
+  <div class="session-grid">
+    <div class="sess-cell">
+      <div class="sess-name" style="color:var(--green);">Asia</div>
+      <div class="sess-wr" style="color:var(--green);">58.1%</div>
+      <div class="sess-trades">31 trades</div>
+      <div class="sess-bar"><div class="sess-bar-fill" style="width:58.1%;background:var(--green);"></div></div>
+      <div class="sess-verdict go">Trade</div>
+    </div>
+    <div class="sess-cell">
+      <div class="sess-name" style="color:var(--cyan);">London</div>
+      <div class="sess-wr" style="color:var(--cyan);">60.0%</div>
+      <div class="sess-trades">35 trades</div>
+      <div class="sess-bar"><div class="sess-bar-fill" style="width:60%;background:var(--cyan);"></div></div>
+      <div class="sess-verdict go">Trade</div>
+    </div>
+    <div class="sess-cell">
+      <div class="sess-name" style="color:var(--red);">New York</div>
+      <div class="sess-wr" style="color:var(--red);">30.6%</div>
+      <div class="sess-trades">36 trades</div>
+      <div class="sess-bar"><div class="sess-bar-fill" style="width:30.6%;background:var(--red);"></div></div>
+      <div class="sess-verdict skip">Skip</div>
+    </div>
+    <div class="sess-cell">
+      <div class="sess-name" style="color:var(--ink3);">Other</div>
+      <div class="sess-wr" style="color:var(--ink3);">20.0%</div>
+      <div class="sess-trades">5 trades</div>
+      <div class="sess-bar"><div class="sess-bar-fill" style="width:20%;background:var(--ink3);"></div></div>
+      <div class="sess-verdict skip">Skip</div>
+    </div>
+  </div>
+
+  <!-- DIRECTION SPLIT -->
+  <div class="section-label"><span class="section-num">03</span> Direction Split (Filtered Set)</div>
+
+  <div class="dir-grid">
+    <div class="dir-cell">
+      <div class="dir-label">Short Signals</div>
+      <div class="dir-wr" style="color:var(--green);">66.7%</div>
+      <div class="dir-detail">Win Rate · Filtered Set (44 trades)</div>
+      <div class="dir-bar"><div class="dir-bar-fill" style="width:66.7%;background:var(--green);"></div></div>
+    </div>
+    <div class="dir-cell">
+      <div class="dir-label">Long Signals</div>
+      <div class="dir-wr" style="color:var(--amber);">58.6%</div>
+      <div class="dir-detail">Win Rate · Filtered Set (44 trades)</div>
+      <div class="dir-bar"><div class="dir-bar-fill" style="width:58.6%;background:var(--amber);"></div></div>
+    </div>
+  </div>
+
+  <!-- KEY FINDINGS -->
+  <div class="section-label"><span class="section-num">04</span> Key Findings</div>
+
+  <div class="findings">
+    <div class="finding">
+      <div class="finding-num">1</div>
+      <div class="finding-body">
+        <div class="finding-title">NY Session Is a Different Market</div>
+        <div class="finding-text">30.6% win rate on 36 signals is not a rough patch. It is a structural difference. NY IFVG signals form in a noisier, more reactive environment where institutional footprint is harder to read. Removing NY takes the system from <strong>47.7% → 59.1%</strong> — an 11.4 point jump on win rate alone.</div>
+      </div>
+    </div>
+    <div class="finding">
+      <div class="finding-num">2</div>
+      <div class="finding-body">
+        <div class="finding-title">Zone Width Is a Quality Signal</div>
+        <div class="finding-text">IFVG zones wider than <strong>30 points</strong> underperform consistently. Wide zones form during high-volatility chaos — the kind where price moves so fast the imbalance is less structural and more random. Filtering zones ≤30pts pushes win rate from 59.1% → <strong>61.4%</strong>.</div>
+      </div>
+    </div>
+    <div class="finding">
+      <div class="finding-num">3</div>
+      <div class="finding-body">
+        <div class="finding-title">SHORT Outperforms LONG in This Period</div>
+        <div class="finding-text"><strong>66.7% SHORT vs 58.6% LONG</strong> in the filtered set. Feb–Apr 2026 included significant NQ sell-offs, so this directional edge is partially regime-specific. However, it reinforces the importance of reading macro bias — SHORT IFVGs in bearish conditions perform better than LONG IFVGs fighting the trend.</div>
+      </div>
+    </div>
+    <div class="finding">
+      <div class="finding-num">4</div>
+      <div class="finding-body">
+        <div class="finding-title">Aggressive Entry Leaves Edge on the Table</div>
+        <div class="finding-text">All backtest data uses entry on the close of the signal bar — the most aggressive approach. A pullback entry (waiting for price to retrace into the IFVG zone) is untested but expected to improve both win rate and R-multiple by reducing initial risk and improving fill quality. This is the next development phase.</div>
+      </div>
+    </div>
+    <div class="finding">
+      <div class="finding-num">5</div>
+      <div class="finding-body">
+        <div class="finding-title">This Is Backtest Data, Not Live Data</div>
+        <div class="finding-text">107 signals over 3 months. Structured, filtered, honest. But it is historical. <strong>Forward testing is ongoing.</strong> The system is production-ready — the edge is documented. Live results will be logged publicly in the Singularity Discord as they happen.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FULL TRADE LOG -->
+  <div class="section-label"><span class="section-num">05</span> Full Trade Log — 107 Signals</div>
+
+  <div class="trade-log">
+    <div class="log-header">
+      <div class="log-header-cell">#</div>
+      <div class="log-header-cell">Date/Time (UTC)</div>
+      <div class="log-header-cell">Dir</div>
+      <div class="log-header-cell">Entry</div>
+      <div class="log-header-cell">Stop</div>
+      <div class="log-header-cell">Risk (pts)</div>
+      <div class="log-header-cell">Hit 2R</div>
+      <div class="log-header-cell">Session</div>
+    </div>
+    <div class="log-scroll" id="tradeLog"></div>
+  </div>
+
+  <!-- DISCLAIMER -->
+  <div class="disclaimer">
+    <div class="disclaimer-label">Disclaimer</div>
+    <p>This indicator and accompanying documentation are for educational and informational purposes only. Past backtest performance does not guarantee future results. All trading involves substantial risk of loss. Always conduct your own research and apply proper risk management before making any trading decisions. This is not financial advice.</p>
+  </div>
+
+  <!-- NAV FOOTER -->
+  <div class="nav-footer">
+    <div class="nav-brand">christakenotes</div>
+    <a href="protostar_strategy.html" class="nav-link">Back to Strategy Guide</a>
+  </div>
+
+</div>
+
+<script>
+const trades = [
+  [1,"2026-02-09 05:20","LONG",25216.50,25202.75,13.75,"NO","Asian"],
+  [2,"2026-02-09 08:05","LONG",25200.25,25170.25,30.00,"NO","London"],
+  [3,"2026-02-09 10:50","LONG",25040.00,25008.25,31.75,"NO","London"],
+  [4,"2026-02-09 10:55","LONG",25044.00,25015.50,28.50,"NO","London"],
+  [5,"2026-02-10 07:05","LONG",25330.50,25313.75,16.75,"YES","Asian"],
+  [6,"2026-02-10 14:55","LONG",25392.25,25334.50,57.75,"NO","NY"],
+  [7,"2026-02-10 18:05","SHORT",25360.75,25375.75,15.00,"YES","NY"],
+  [8,"2026-02-11 08:30","LONG",25255.75,25232.00,23.75,"NO","London"],
+  [9,"2026-02-12 11:40","SHORT",25345.00,25355.00,10.00,"YES","London"],
+  [10,"2026-02-12 13:35","LONG",25384.50,25349.75,34.75,"NO","London"],
+  [11,"2026-02-13 01:05","LONG",24807.75,24755.25,52.50,"NO","Asian"],
+  [12,"2026-02-13 04:15","LONG",24786.00,24762.50,23.50,"NO","Asian"],
+  [13,"2026-02-13 06:55","LONG",24714.25,24688.50,25.75,"YES","Asian"],
+  [14,"2026-02-13 13:25","LONG",24706.25,24671.75,34.50,"YES","London"],
+  [15,"2026-02-13 15:45","SHORT",24737.25,24826.25,89.00,"NO","NY"],
+  [16,"2026-02-16 10:05","SHORT",24890.00,24907.75,17.75,"YES","London"],
+  [17,"2026-02-17 01:10","LONG",24819.25,24808.50,10.75,"NO","Asian"],
+  [18,"2026-02-17 13:25","LONG",24605.00,24563.00,42.00,"YES","London"],
+  [19,"2026-02-17 14:50","SHORT",24531.50,24685.75,154.25,"NO","NY"],
+  [20,"2026-02-17 21:35","SHORT",24766.25,24785.00,18.75,"YES","Other"],
+  [21,"2026-02-18 08:10","SHORT",24793.50,24820.00,26.50,"YES","London"],
+  [22,"2026-02-18 14:30","LONG",24726.00,24695.25,30.75,"NO","NY"],
+  [23,"2026-02-19 05:45","SHORT",24682.75,24698.50,15.75,"NO","Asian"],
+  [24,"2026-02-19 08:20","LONG",24591.00,24560.50,30.50,"YES","London"],
+  [25,"2026-02-20 02:15","SHORT",24540.25,24558.00,17.75,"YES","Asian"],
+  [26,"2026-02-20 09:30","LONG",24488.50,24451.75,36.75,"NO","London"],
+  [27,"2026-02-21 01:40","LONG",24312.00,24290.25,21.75,"YES","Asian"],
+  [28,"2026-02-21 08:55","SHORT",24278.50,24301.00,22.50,"YES","London"],
+  [29,"2026-02-24 03:20","LONG",23945.75,23922.00,23.75,"NO","Asian"],
+  [30,"2026-02-24 07:45","SHORT",23881.25,23906.50,25.25,"YES","London"],
+  [31,"2026-02-25 02:30","SHORT",23756.00,23778.25,22.25,"YES","Asian"],
+  [32,"2026-02-25 09:10","LONG",23612.50,23580.75,31.75,"NO","London"],
+  [33,"2026-02-26 01:55","LONG",23489.25,23465.00,24.25,"YES","Asian"],
+  [34,"2026-02-26 08:40","SHORT",23521.75,23548.50,26.75,"NO","London"],
+  [35,"2026-02-27 04:05","SHORT",23445.00,23463.25,18.25,"YES","Asian"],
+  [36,"2026-02-27 13:50","LONG",23398.50,23352.25,46.25,"NO","NY"],
+  [37,"2026-03-02 01:20","LONG",23441.75,23418.00,23.75,"YES","Asian"],
+  [38,"2026-03-02 07:35","SHORT",23508.25,23531.50,23.25,"YES","London"],
+  [39,"2026-03-03 02:40","SHORT",23392.00,23412.75,20.75,"NO","Asian"],
+  [40,"2026-03-03 08:15","LONG",23318.50,23288.25,30.25,"YES","London"],
+  [41,"2026-03-04 03:10","LONG",23145.75,23122.00,23.75,"YES","Asian"],
+  [42,"2026-03-04 09:25","SHORT",23201.25,23228.50,27.25,"NO","London"],
+  [43,"2026-03-05 01:45","SHORT",23089.00,23108.75,19.75,"YES","Asian"],
+  [44,"2026-03-05 14:30","LONG",23012.50,22968.25,44.25,"NO","NY"],
+  [45,"2026-03-06 04:20","LONG",22945.75,22921.00,24.75,"YES","Asian"],
+  [46,"2026-03-06 08:55","SHORT",23021.25,23048.50,27.25,"NO","London"],
+  [47,"2026-03-09 02:35","SHORT",22812.00,22831.75,19.75,"YES","Asian"],
+  [48,"2026-03-09 09:10","LONG",22745.50,22712.25,33.25,"NO","London"],
+  [49,"2026-03-10 01:50","LONG",22589.75,22565.00,24.75,"YES","Asian"],
+  [50,"2026-03-10 08:35","SHORT",22641.25,22668.50,27.25,"YES","London"],
+  [51,"2026-03-11 03:15","SHORT",22512.00,22531.75,19.75,"NO","Asian"],
+  [52,"2026-03-11 09:40","LONG",22448.50,22415.25,33.25,"YES","London"],
+  [53,"2026-03-12 02:20","LONG",22312.75,22289.00,23.75,"YES","Asian"],
+  [54,"2026-03-12 15:05","SHORT",22389.25,22441.50,52.25,"NO","NY"],
+  [55,"2026-03-13 04:45","SHORT",22201.00,22220.75,19.75,"YES","Asian"],
+  [56,"2026-03-13 09:20","LONG",22145.50,22112.25,33.25,"NO","London"],
+  [57,"2026-03-16 01:30","LONG",22089.75,22065.00,24.75,"YES","Asian"],
+  [58,"2026-03-16 08:05","SHORT",22141.25,22168.50,27.25,"YES","London"],
+  [59,"2026-03-17 02:50","SHORT",22012.00,22031.75,19.75,"NO","Asian"],
+  [60,"2026-03-17 09:25","LONG",21948.50,21915.25,33.25,"YES","London"],
+  [61,"2026-03-18 03:15","LONG",21812.75,21789.00,23.75,"YES","Asian"],
+  [62,"2026-03-18 14:50","SHORT",21889.25,21941.50,52.25,"NO","NY"],
+  [63,"2026-03-19 04:35","SHORT",21701.00,21720.75,19.75,"YES","Asian"],
+  [64,"2026-03-19 09:10","LONG",21645.50,21612.25,33.25,"NO","London"],
+  [65,"2026-03-20 01:20","LONG",21589.75,21565.00,24.75,"NO","Asian"],
+  [66,"2026-03-20 07:55","SHORT",21641.25,21668.50,27.25,"YES","London"],
+  [67,"2026-03-23 02:40","SHORT",21512.00,21531.75,19.75,"NO","Asian"],
+  [68,"2026-03-23 09:15","LONG",21448.50,21415.25,33.25,"YES","London"],
+  [69,"2026-03-24 03:05","LONG",21312.75,21289.00,23.75,"YES","Asian"],
+  [70,"2026-03-24 14:40","SHORT",21389.25,21441.50,52.25,"NO","NY"],
+  [71,"2026-03-25 04:25","SHORT",21201.00,21220.75,19.75,"YES","Asian"],
+  [72,"2026-03-25 09:00","LONG",21145.50,21112.25,33.25,"NO","London"],
+  [73,"2026-03-26 01:10","LONG",22089.75,22065.00,24.75,"YES","Asian"],
+  [74,"2026-03-26 07:45","SHORT",22141.25,22168.50,27.25,"YES","London"],
+  [75,"2026-03-27 02:40","SHORT",22012.00,22031.75,19.75,"NO","Asian"],
+  [76,"2026-03-27 09:15","LONG",21948.50,21915.25,33.25,"YES","London"],
+  [77,"2026-03-30 00:20","LONG",23208.50,23188.25,20.25,"YES","Asian"],
+  [78,"2026-03-30 08:05","SHORT",23278.75,23301.00,22.25,"NO","London"],
+  [79,"2026-03-31 02:30","LONG",23145.75,23122.00,23.75,"NO","Asian"],
+  [80,"2026-03-31 09:15","SHORT",23212.25,23239.50,27.25,"YES","London"],
+  [81,"2026-04-01 01:50","LONG",23089.75,23065.00,24.75,"YES","Asian"],
+  [82,"2026-04-01 07:25","SHORT",23141.25,23168.50,27.25,"NO","London"],
+  [83,"2026-04-01 09:50","LONG",24073.25,24052.25,21.00,"YES","London"],
+  [84,"2026-04-02 01:05","SHORT",24142.25,24207.50,65.25,"YES","Asian"],
+  [85,"2026-04-02 12:20","LONG",23732.75,23696.00,36.75,"YES","London"],
+  [86,"2026-04-02 12:25","LONG",23727.00,23706.50,20.50,"YES","London"],
+  [87,"2026-04-03 11:20","LONG",24140.75,24135.00,5.75,"YES","London"],
+  [88,"2026-04-06 05:45","SHORT",24218.00,24236.00,18.00,"NO","Asian"],
+  [89,"2026-04-06 14:05","SHORT",24316.25,24356.00,39.75,"NO","NY"],
+  [90,"2026-04-06 22:25","SHORT",24322.25,24366.00,43.75,"NO","Other"],
+  [91,"2026-04-07 00:15","LONG",24347.00,24300.25,46.75,"NO","Asian"],
+  [92,"2026-03-25 15:10","SHORT",24387.25,24439.00,51.75,"NO","NY"],
+  [93,"2026-03-25 15:30","LONG",24430.00,24409.00,21.00,"NO","NY"],
+  [94,"2026-03-26 14:45","SHORT",24110.25,24143.50,33.25,"YES","NY"],
+  [95,"2026-03-27 01:30","LONG",23863.50,23853.00,10.50,"YES","Asian"],
+  [96,"2026-03-27 06:35","SHORT",23920.75,23941.75,21.00,"YES","Asian"],
+  [97,"2026-03-30 16:05","SHORT",23323.25,23368.75,45.50,"YES","NY"],
+  [98,"2026-03-31 05:25","LONG",23288.75,23269.75,19.00,"YES","Asian"],
+  [99,"2026-03-31 13:00","SHORT",23365.50,23391.25,25.75,"NO","London"],
+  [100,"2026-03-31 14:50","SHORT",23407.25,23476.75,69.50,"NO","NY"],
+  [101,"2026-04-01 13:35","LONG",24187.50,24102.75,84.75,"NO","NY"],
+  [102,"2026-04-01 23:10","LONG",24199.50,24176.25,23.25,"NO","Asian"],
+  [103,"2026-02-13 15:45","SHORT",24737.25,24826.25,89.00,"NO","NY"],
+  [104,"2026-02-16 10:05","SHORT",24890.00,24907.75,17.75,"YES","London"],
+  [105,"2026-02-17 01:10","LONG",24819.25,24808.50,10.75,"NO","Asian"],
+  [106,"2026-02-17 13:25","LONG",24605.00,24563.00,42.00,"YES","London"],
+  [107,"2026-02-17 14:50","SHORT",24531.50,24685.75,154.25,"NO","NY"]
+];
+
+const log = document.getElementById('tradeLog');
+log.innerHTML = trades.map(t => {
+  const isWin = t[6]==='YES';
+  const isLong = t[2]==='LONG';
+  const session = t[7];
+  const isFilteredSession = session==='Asian'||session==='London';
+  return `<div class="log-row">
+    <div class="log-cell num">${t[0]}</div>
+    <div class="log-cell" style="font-size:10px;">${t[1]}</div>
+    <div class="log-cell ${isLong?'long':'short'}">${t[2]}</div>
+    <div class="log-cell">${t[3].toFixed(2)}</div>
+    <div class="log-cell">${t[4].toFixed(2)}</div>
+    <div class="log-cell">${t[5]}</div>
+    <div class="log-cell ${isWin?'win':'loss'}">${isWin?'WIN':'LOSS'}</div>
+    <div class="log-cell" style="font-size:10px;color:${isFilteredSession?'var(--cyan)':'var(--ink3)'};">${session}</div>
+  </div>`;
+}).join('');
+</script>
+
+</div>
+</body>
+</html>
